@@ -1,0 +1,50 @@
+<!-- services.html -->
+{% extends 'base.html' %}
+
+{% block title %}Services - My Website{% endblock %}
+
+{% block content %}
+    <h2>Our Services</h2> 
+    <p>Locator</p> 
+
+<div id="map" style="height:413px;width:385px;"></div>
+
+{{ centers|json_script:"centers_json" }}
+
+<script>
+    var map = L.map('map').setView([20.593684, 78.96288], 5);
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    let centers = JSON.parse(document.getElementById('centers_json').textContent);
+
+    centers.forEach(center => {
+        L.marker([center.latitude, center.longitude]).addTo(map);
+    });
+
+    map.on('click', (event) => {
+        let lat = event.latlng.lat;
+        let longitude = event.latlng.lng;
+
+        // Add a marker to the clicked location
+        L.marker([lat, longitude]).addTo(map);
+
+        // Fetch data from the backend endpoint
+        fetch(`/get-nearest-center?latitude=${lat}&longitude=${longitude}`)
+            .then(response => response.json())
+            .then(result => {
+                let center_coordinates = result.coordinates;
+                let user_coordinates = [lat, longitude];
+                let polyline = L.polyline([user_coordinates, center_coordinates]).addTo(map);
+
+                var popup = L.popup()
+                    .setLatLng([lat, longitude])
+                    .setContent(`<p>Nearest center is ${result.distance} km away.</p>`)
+                    .openOn(map);
+            });
+    });
+</script>
+{% endblock %}
+
